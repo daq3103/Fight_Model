@@ -1,15 +1,26 @@
 import os
-from torchvision.io import read_video
 from glob import glob
 from torch.utils.data import Dataset
+import numpy as np
+from decord import VideoReader
+from decord import cpu as decord_cpu
 
 
 def load_video_frames(path, T):
-    pts, _, _ = read_video(path, pts_unit="sec")
-    train_video = pts[:T]
-    video = train_video.permute(3, 0, 1, 2).contiguous()
-    video = video.float() / 255
-    return video
+    vr = VideoReader(path, ctx=decord_cpu(0))
+    num_frames = len(vr)
+    if num_frames <= 0:
+        raise RuntimeError(f"Cannot read frames from video: {path}")
+
+    if num_frames < T:
+        idxs = np.linspace(0, num_frames - 1, num=num_frames, dtype=np.int64)
+    else:
+        idxs = np.linspace(0, num_frames - 1, num=T, dtype=np.int64)
+
+    batch = vr.get_batch(idxs).asnumpy()  # [T,H,W,3], uint8
+    import torch as _torch
+    video = _torch.from_numpy(batch).permute(3, 0, 1, 2).contiguous()  # [C,T,H,W]
+    return video.float() / 255
 
 def to_float_tensor(label):
     # Đảm bảo nhãn là float tensor có kích thước [1]

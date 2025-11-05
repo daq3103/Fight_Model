@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_CLASSES = 1 
-BATCH_SIZE = 8 
+BATCH_SIZE = 4
 LEARNING_RATE = 1e-4
 criterion = nn.BCEWithLogitsLoss()
 NUM_EPOCHS = 10 
