@@ -54,7 +54,7 @@ class VideoFolderDataset(Dataset):
             label = self.target_transform(label)  # thường là int -> tensor
 
 
-        label = torch.tensor(label, dtype=torch.float).view(1)
+        label = torch.as_tensor(label, dtype=torch.float32).view(1)
 
         return video, label
 
@@ -74,9 +74,12 @@ class VideoTransform:
         self.std = torch.tensor([0.225, 0.225, 0.225]).view(3, 1, 1, 1)
 
     def __call__(self, x):  
+        # x is [C, T, H, W]; resize spatial dims treating T as batch
+        x = x.permute(1, 0, 2, 3).contiguous()  # [T, C, H, W]
         x = F.interpolate(
             x, size=(self.size, self.size), mode="bilinear", align_corners=False
         )
+        x = x.permute(1, 0, 2, 3).contiguous()  # back to [C, T, H, W]
         if self.train and torch.rand(1) < 0.5:
             x = torch.flip(x, dims=[3])  
         x = (x - self.mean.to(x.device)) / self.std.to(x.device)

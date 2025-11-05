@@ -28,7 +28,7 @@ def train(
     num_epochs: int = NUM_EPOCHS,
     t: int = T,
     freeze_backbone: bool = FREEZE_BACKBONE,
-    num_workers: int = 4,
+    num_workers: int = 0,
     size: int = 224,
     ckpt_path: str = "mvit_v2_s_best.pt",
 ):
@@ -168,8 +168,12 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=NUM_EPOCHS)
     parser.add_argument("--lr", type=float, default=LEARNING_RATE)
     parser.add_argument("--t", type=int, default=T, help="Number of frames per clip")
-    parser.add_argument("--freeze_backbone", action="store_true", default=FREEZE_BACKBONE)
-    parser.add_argument("--num_workers", type=int, default=4)
+    # Proper toggles for freezing backbone
+    freeze_group = parser.add_mutually_exclusive_group()
+    freeze_group.add_argument("--freeze_backbone", dest="freeze_backbone", action="store_true")
+    freeze_group.add_argument("--no-freeze_backbone", dest="freeze_backbone", action="store_false")
+    parser.set_defaults(freeze_backbone=FREEZE_BACKBONE)
+    parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--size", type=int, default=224, help="Input spatial size")
     parser.add_argument("--ckpt_path", type=str, default="mvit_v2_s_best.pt")
 
