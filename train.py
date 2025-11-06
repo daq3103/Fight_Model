@@ -9,17 +9,10 @@ import torch
 from dataset_mvit import VideoFolderDataset, VideoTransform, to_float_tensor
 from model_mvit import FightVideoModel
 from torch.utils.data import DataLoader
+from config import *
 
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-NUM_CLASSES = 1 
-BATCH_SIZE = 4
-LEARNING_RATE = 1e-4
 criterion = nn.BCEWithLogitsLoss()
-NUM_EPOCHS = 10 
-T = 16
-DATA_ROOT = "./dataset/data"
-FREEZE_BACKBONE = True
 
 def train(
     data_root: str = DATA_ROOT,
@@ -29,8 +22,8 @@ def train(
     t: int = T,
     freeze_backbone: bool = FREEZE_BACKBONE,
     num_workers: int = 0,
-    size: int = 224,
-    ckpt_path: str = "mvit_v2_s_best.pt",
+    size: int = IMAGE_SIZE,
+    ckpt_path: str = CKPT_PATH,
 ):
     # chuẩn bị data train/val theo tham số
     train_transform = VideoTransform(size=size, train=True)
@@ -170,8 +163,8 @@ if __name__ == "__main__":
     freeze_group.add_argument("--no-freeze_backbone", dest="freeze_backbone", action="store_false")
     parser.set_defaults(freeze_backbone=FREEZE_BACKBONE)
     parser.add_argument("--num_workers", type=int, default=0)
-    parser.add_argument("--size", type=int, default=224, help="Input spatial size")
-    parser.add_argument("--ckpt_path", type=str, default="mvit_v2_s_best.pt")
+    parser.add_argument("--size", type=int, default=IMAGE_SIZE, help="Input spatial size")
+    parser.add_argument("--ckpt_path", type=str, default=CKPT_PATH)
 
     args = parser.parse_args()
 

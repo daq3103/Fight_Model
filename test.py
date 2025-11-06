@@ -1,16 +1,8 @@
 import cv2
 import torch
 import numpy as np
-
 from infer import load_model_once, predict_fight_violence
-
-# CẤU HÌNH CỐ ĐỊNH TỪ MODEL VÀ CONFIG CỦA BẠN
-T = 16 
-SLIDE_WINDOW = 1
-IMAGE_SIZE = 224
-NUM_CLASSES = 1
-CKPT_PATH = "mvit_v2_s_best.pt"
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from config import T, SLIDE_WINDOW, IMAGE_SIZE, NUM_CLASSES, CKPT_PATH, DEVICE, MEAN, STD
 
 # Tải model (chỉ load 1 lần)
 model = load_model_once(CKPT_PATH, NUM_CLASSES)
@@ -31,15 +23,15 @@ def preprocess_frame(frame):
     frame_float = frame_resized.astype(np.float32) / 255.0
     
     # 3. NORMALIZE với mean/std giống như training
-    mean = np.array([0.45, 0.45, 0.45])
-    std = np.array([0.225, 0.225, 0.225])
+    mean = np.array(MEAN)
+    std = np.array(STD)
     frame_norm = (frame_float - mean) / std 
 
     return frame_norm
 
 # Khởi tạo Video Capture (Thay đổi "input_video.mp4" thành 0 nếu dùng webcam)
 # cap = cv2.VideoCapture("./dataset/data/train/fight/1.avi")
-cap = cv2.VideoCapture("f.avi")
+cap = cv2.VideoCapture("test1.mp4")
 if not cap.isOpened():
     print("Error opening video stream or file")
     exit()
@@ -77,22 +69,10 @@ while cap.isOpened():
         # Thêm batch dimension: (1, C, T, H, W)
         clip_tensor = clip_tensor.unsqueeze(0).float() 
         
-        # 3.4. CHẠY DỰ ĐOÁN
         label, conf = predict_fight_violence(clip_tensor, CKPT_PATH, NUM_CLASSES)
         
-        # Cập nhật kết quả dự đoán gần nhất
         last_prediction = (label, conf)
         
-        # 3.5. Xử lý Slide Window (Quan trọng)
-        # Nếu SLIDE_WINDOW = 1, ta đã loại bỏ frame cũ nhất ở bước 3.2
-        # Nếu SLIDE_WINDOW > 1, ta cần loại bỏ thêm SLIDE_WINDOW - 1 frames
-        # Ví dụ: Nếu SLIDE_WINDOW=5, ta chỉ giữ lại 16-5=11 frames cũ nhất
-        # frame_queue = frame_queue[SLIDE_WINDOW:] 
-        
-        # Ở đây, vì đã dùng frame_queue = frame_queue[-T:] ở bước 3.2 và T là kích thước cửa sổ dự đoán
-        # nên việc trượt 1 frame (SLIDE_WINDOW=1) đã được tự động xử lý.
-        
-    # 3.6. HIỂN THỊ KẾT QUẢ TRÊN FRAME (Hiển thị kết quả gần nhất)
     label = f"Pred: {'FIGHT' if last_prediction[0] == 1 else 'NORMAL'}"
     confidence_text = f"Conf: {last_prediction[1]:.2f}"
     

@@ -2,11 +2,9 @@
 # Input: path video + checkpoint
 # Output: label + probabilities
 
-# Giả sử num_classes = 1 (như trong config của bạn)
 import torch
 from model_mvit import FightVideoModel
-
-GLOBAL_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from config import DEVICE, NUM_CLASSES, CKPT_PATH, CONFIDENCE_THRESHOLD
 
 GLOBAL_MODEL = None
 def load_model_once(path_to_ckpt, num_classes):
@@ -32,7 +30,7 @@ def load_model_once(path_to_ckpt, num_classes):
              
         model.load_state_dict(sd)
         model.eval() # Bắt buộc phải chuyển sang chế độ đánh giá
-        model.to(GLOBAL_DEVICE)
+        model.to(DEVICE)
         
         GLOBAL_MODEL = model # Lưu trữ model đã load
         print("Model loaded successfully.")
@@ -44,8 +42,8 @@ def load_model_once(path_to_ckpt, num_classes):
     
 
 def predict_fight_violence(video_tensor: torch.Tensor, 
-                            path_to_ckpt: str = "mvit_v2_s_best.pt", 
-                            num_classes: int = 1):
+                            path_to_ckpt: str = CKPT_PATH, 
+                            num_classes: int = NUM_CLASSES):
     """
     Thực hiện suy luận (inference) để dự đoán nhãn và độ tin cậy.
 
@@ -62,7 +60,7 @@ def predict_fight_violence(video_tensor: torch.Tensor,
     model = load_model_once(path_to_ckpt, num_classes)
     
     # 1. Chuyển tensor đầu vào về đúng device
-    input_tensor = video_tensor.to(GLOBAL_DEVICE)
+    input_tensor = video_tensor.to(DEVICE)
     
     # 2. Chạy suy luận (inference)
     with torch.no_grad():
@@ -70,7 +68,23 @@ def predict_fight_violence(video_tensor: torch.Tensor,
 
     probability = torch.sigmoid(raw_output).squeeze().item()  
 
-    # Trả về label dạng int (0 hoặc 1) - với model mới đã đúng mapping
-    label = 1 if probability >= 0.5 else 0
+    # KIỂM TRA LOẠI MODEL dựa trên DATA_ROOT trong checkpoint
+    try:
+        ckpt = torch.load(path_to_ckpt, map_location="cpu")
+        data_root = ckpt.get("config", {}).get("DATA_ROOT", "")
+        
+        if "kaggle" in data_root.lower():
+            # Model Kaggle: Fight=0, NonFight=1 (SAI) → cần đảo ngược
+            probability = 1 - probability
+            print("Using Kaggle model - applying reverse mapping")
+        else:
+            # Model local: fight=1, nofight=0 (ĐÚNG)
+            print("Using local model - direct mapping")
+    except:
+        # Fallback: assume local model
+        pass
+
+    # Model với mapping đúng: fight=1, nofight=0
+    label = 1 if probability >= CONFIDENCE_THRESHOLD else 0
 
     return label, probability

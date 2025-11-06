@@ -4,6 +4,9 @@ from torch.utils.data import Dataset
 import numpy as np
 from decord import VideoReader
 from decord import cpu as decord_cpu
+import torch
+import torch.nn.functional as F
+from config import IMAGE_SIZE, MEAN, STD, VIDEO_EXTENSIONS
 
 
 def load_video_frames(path, T):
@@ -48,8 +51,10 @@ class VideoFolderDataset(Dataset):
              self.class_to_idx = {'nofight': 0, 'fight': 1}
         elif 'FIGHT' in self.classes and 'NONFIGHT' in self.classes:
              self.class_to_idx = {'NONFIGHT': 0, 'FIGHT': 1}
+        elif 'Fight' in self.classes and 'NonFight' in self.classes:
+             self.class_to_idx = {'NonFight': 0, 'Fight': 1}  # Fix cho Kaggle dataset
         # 2) Gom danh sách video + nhãn
-        exts = ("mp4", "avi")
+        exts = VIDEO_EXTENSIONS
         samples = []
         for c in self.classes:
             cdir = os.path.join(root, c)
@@ -83,11 +88,11 @@ import torch.nn.functional as F
 
 
 class VideoTransform:
-    def __init__(self, size=224, train=True):
+    def __init__(self, size=IMAGE_SIZE, train=True):
         self.size = size
         self.train = train
-        self.mean = torch.tensor([0.45, 0.45, 0.45]).view(3, 1, 1, 1)
-        self.std = torch.tensor([0.225, 0.225, 0.225]).view(3, 1, 1, 1)
+        self.mean = torch.tensor(MEAN).view(3, 1, 1, 1)
+        self.std = torch.tensor(STD).view(3, 1, 1, 1)
 
     def __call__(self, x):  
         # x is [C, T, H, W]; resize spatial dims treating T as batch
