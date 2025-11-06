@@ -42,8 +42,8 @@ class VideoFolderDataset(Dataset):
             )
         self.classes = classes
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
-        if 'FIGHT' in self.classes and 'NORMAL' in self.classes:
-             self.class_to_idx = {'NORMAL': 0, 'FIGHT': 1}
+        if 'FIGHT' in self.classes and 'NONFIGHT' in self.classes:
+             self.class_to_idx = {'NONFIGHT': 0, 'FIGHT': 1}
         # 2) Gom danh sách video + nhãn
         exts = ("mp4", "avi")
         samples = []
@@ -53,19 +53,6 @@ class VideoFolderDataset(Dataset):
             for ext in exts:
                 paths += glob(os.path.join(cdir, f"*.{ext}"))
             samples += [(p, self.class_to_idx[c]) for p in paths]
-
-        # Tùy chọn: lọc bỏ video lỗi không đọc được (decord/ffmpeg decode errors)
-        if validate_videos:
-            valid_samples = []
-            for path, label in samples:
-                try:
-                    vr = VideoReader(path, ctx=decord_cpu(0))
-                    if len(vr) > 0:
-                        valid_samples.append((path, label))
-                except Exception:
-                    # Bỏ qua video hỏng
-                    pass
-            samples = valid_samples
 
         self.samples = samples  # [(path, label_idx), ...]
 
