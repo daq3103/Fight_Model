@@ -61,26 +61,16 @@ def predict_fight_violence(video_tensor: torch.Tensor,
     """
     model = load_model_once(path_to_ckpt, num_classes)
     
-    if model is None:
-        return -1, 0.0 # Trả về giá trị lỗi nếu model load thất bại
-
     # 1. Chuyển tensor đầu vào về đúng device
     input_tensor = video_tensor.to(GLOBAL_DEVICE)
     
     # 2. Chạy suy luận (inference)
     with torch.no_grad():
-        raw_output = model(input_tensor) # Kích thước (N, 1)
+        raw_output = model(input_tensor) 
 
-    # 3. Xử lý đầu ra (Post-processing)
-    
-    # Áp dụng Sigmoid vì là phân loại nhị phân (num_classes=1)
-    # Lấy giá trị đầu tiên và duy nhất trong batch (Giả sử N=1)
-    probability = torch.sigmoid(raw_output).squeeze().item() 
-    
-    # Đặt ngưỡng (threshold) để có nhãn (0: Non-Violence, 1: Violence)
-    label = 1 if probability >= 0.5 else 0 
-    
-    # Độ tin cậy (Confidence)
-    confidence = probability
-    
-    return label, confidence
+    probability = torch.sigmoid(raw_output).squeeze().item()  
+
+    # Trả về label dạng int (0 hoặc 1) - với model mới đã đúng mapping
+    label = 1 if probability >= 0.5 else 0
+
+    return label, probability

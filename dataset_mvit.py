@@ -42,7 +42,11 @@ class VideoFolderDataset(Dataset):
             )
         self.classes = classes
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
-        if 'FIGHT' in self.classes and 'NONFIGHT' in self.classes:
+        
+        # Sửa mapping để FIGHT = 1, NOFIGHT = 0
+        if 'fight' in self.classes and 'nofight' in self.classes:
+             self.class_to_idx = {'nofight': 0, 'fight': 1}
+        elif 'FIGHT' in self.classes and 'NONFIGHT' in self.classes:
              self.class_to_idx = {'NONFIGHT': 0, 'FIGHT': 1}
         # 2) Gom danh sách video + nhãn
         exts = ("mp4", "avi")
