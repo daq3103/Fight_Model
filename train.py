@@ -71,20 +71,18 @@ def train(
     for epoch in range(1, num_epochs + 1):
         epoch_start = time.time()
 
-        # --------------------
-        # Train
-        # --------------------
+
         model.train()
         running_loss = 0.0
         running_correct = 0
         running_total = 0
 
         for videos, labels in train_loader:
-            videos = videos.to(DEVICE)  # [B,C,T,H,W]
-            labels = labels.to(DEVICE)  # [B,1]
+            videos = videos.to(DEVICE)  
+            labels = labels.to(DEVICE)  
 
             optimizer.zero_grad()
-            logits = model(videos)  # [B,1]
+            logits = model(videos)  
             loss = criterion(logits, labels)
             loss.backward()
             optimizer.step()
@@ -100,9 +98,7 @@ def train(
         train_loss = running_loss / max(1, len(train_loader.dataset))
         train_acc = running_correct / max(1, running_total)
 
-        # --------------------
-        # Validate
-        # --------------------
+
         model.eval()
         val_running_loss = 0.0
         val_running_correct = 0
