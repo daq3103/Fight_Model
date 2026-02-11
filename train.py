@@ -41,6 +41,28 @@ def train(
         transform=val_transform,
         target_transform=to_float_tensor,
     )
+    
+    # In thông tin về classes và mapping
+    print("=" * 60)
+    print("DATASET INFO:")
+    print(f"Train classes: {train_dataset.classes}")
+    print(f"Train class_to_idx: {train_dataset.class_to_idx}")
+    print(f"Val classes: {val_dataset.classes}")
+    print(f"Val class_to_idx: {val_dataset.class_to_idx}")
+    print(f"Total train samples: {len(train_dataset)}")
+    print(f"Total val samples: {len(val_dataset)}")
+    
+    # In một vài samples để kiểm tra
+    print("\nTRAIN SAMPLES (first 5):")
+    for i in range(min(5, len(train_dataset.samples))):
+        path, label = train_dataset.samples[i]
+        print(f"  {i}: {os.path.basename(path)} -> label={label} (class: {train_dataset.classes[label]})")
+    
+    print("\nVAL SAMPLES (first 5):")
+    for i in range(min(5, len(val_dataset.samples))):
+        path, label = val_dataset.samples[i]
+        print(f"  {i}: {os.path.basename(path)} -> label={label} (class: {val_dataset.classes[label]})")
+    print("=" * 60)
 
     train_loader = DataLoader(
         train_dataset,

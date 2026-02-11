@@ -1,0 +1,19 @@
+{
+  "name": "my-savant-module-dev",
+  "image": "ghcr.io/insight-platform/savant-deepstream-l4t:latest",
+  "runArgs": ["--runtime=nvidia"],
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    {
+      "source": "${localWorkspaceFolder}",
+      "target": "/workspace",
+      "type": "bind"
+    }
+  ],
+  "containerEnv": {
+    "LOGLEVEL": "DEBUG",
+    "MODEL_PATH": "/workspace/models",
+    "ZMQ_SRC_ENDPOINT": "tcp://0.0.0.0:5000",
+    "ZMQ_SINK_ENDPOINT": "tcp://0.0.0.0:6000"
+  }
+}

@@ -1,0 +1,137 @@
+services:
+  video-loop-source:
+    image: ghcr.io/insight-platform/savant-adapters-gstreamer-l4t:latest
+    restart: unless-stopped
+    volumes:
+      - zmq_sockets:/tmp/zmq-sockets
+      - /tmp/video-loop-source-downloads:/tmp/video-loop-source-downloads
+    environment:
+      - LOCATION=file:///videos/test_fight.mp4
+      - DOWNLOAD_PATH=/tmp/video-loop-source-downloads
+      - ZMQ_ENDPOINT=pub+connect:ipc:///tmp/zmq-sockets/input-video.ipc
+      - SOURCE_ID=test-fight-video
+      - SYNC_OUTPUT=True  # True cho testing, False cho real-time
+    entrypoint: /opt/savant/adapters/gst/sources/video_loop.sh
+    depends_on:
+      module:
+        condition: service_healthy
+
+  # ==========================================
+  # MVIT FIGHT DETECTION MODULE (Processing)
+  # ==========================================
+  module:
+    image: ghcr.io/insight-platform/savant-deepstream-l4t:latest
+    privileged: true
+    runtime: nvidia
+    ipc: host  # Quan trọng cho multi-stream
+    restart: unless-stopped
+    
+    volumes:
+      - zmq_sockets:/tmp/zmq-sockets
+      - ./cache:/cache
+      - ./config:/config
+      - ./models:/models
+      - ./custom_modules:/opt/savant/custom
+      
+    # Pipeline config file
+    command: /config/mvit_fight_module.yml
+    
+    environment:
+      # Model paths
+      - MODEL_PATH=/models
+      - DOWNLOAD_PATH=/cache/downloads/mvit_fight
+      
+      # ZMQ endpoints
+      - ZMQ_SRC_ENDPOINT=sub+bind:ipc:///tmp/zmq-sockets/input-video.ipc
+      - ZMQ_SINK_ENDPOINT=pub+bind:ipc:///tmp/zmq-sockets/output-video.ipc
+      - ZMQ_SINK_METADATA=pub+bind:ipc:///tmp/zmq-sockets/output-meta.ipc
+      
+      # Performance
+      - BATCH_SIZE=1  # Test với batch=1 trước
+      - METRICS_FRAME_PERIOD=100
+      - CODEC=h264
+      
+      # TensorRT optimization
+      - TENSORRT_CACHE_PATH=/cache/tensorrt
+      - TENSORRT_BUILDER_OPTIMIZATION_LEVEL=5
+      
+      # GPU settings
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      
+      # Logging
+      - LOGLEVEL=INFO
+      - GST_DEBUG=2
+      - SAVANT_RS_LOG_LEVEL=info
+    
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import zmq; ctx = zmq.Context(); s = ctx.socket(zmq.REQ); s.connect('ipc:///tmp/zmq-sockets/input-video.ipc'); exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ==========================================
+  # OUTPUT SINK (RTSP/WebRTC output)
+  # ==========================================
+  always-on-sink:
+    image: ghcr.io/insight-platform/savant-adapters-deepstream-l4t:latest
+    runtime: nvidia
+    restart: unless-stopped
+    
+    ports:
+      - "554:554"    # RTSP
+      - "1935:1935"  # RTMP
+      - "888:888"    # HLS
+      - "8889:8889"  # WebRTC
+    
+    volumes:
+      - zmq_sockets:/tmp/zmq-sockets
+      - ./assets/stub_imgs:/stub_imgs
+    
+    environment:
+      - ZMQ_ENDPOINT=sub+connect:ipc:///tmp/zmq-sockets/output-video.ipc
+      - SOURCE_ID=test-fight-video  # Khớp với video-loop-source
+      - FRAMERATE=25/1
+      - STUB_FILE_LOCATION=/stub_imgs/smpte100_1280x720.jpeg
+      - DEV_MODE=True  # True cho testing
+      - SYNC_OUTPUT=False
+    
+    command: python -m adapters.ds.sinks.always_on_rtsp
+    
+    depends_on:
+      - module
+
+  # ==========================================
+  # METADATA PROCESSOR (Optional - Alert service)
+  # ==========================================
+  fight-alert-processor:
+    image: python:3.10-slim
+    restart: unless-stopped
+    
+    volumes:
+      - zmq_sockets:/tmp/zmq-sockets
+      - ./alert_service:/app
+    
+    working_dir: /app
+    
+    environment:
+      - ZMQ_ENDPOINT=sub+connect:ipc:///tmp/zmq-sockets/output-meta.ipc
+      - CONFIDENCE_THRESHOLD=0.5
+      - ALERT_COOLDOWN=5  # Seconds giữa 2 alerts
+    
+    command: python fight_alert_processor.py
+    
+    depends_on:
+      - module
+
+# ==========================================
+# SHARED VOLUMES
+# ==========================================
+volumes:
+  zmq_sockets:
+    driver: local
+
+networks:
+  default:
+    driver: bridge

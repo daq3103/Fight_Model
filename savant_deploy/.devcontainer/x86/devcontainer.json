@@ -1,0 +1,130 @@
+{
+  "name": "my-savant-dev",
+  "image": "ghcr.io/insight-platform/savant-deepstream:latest",
+  "runArgs": ["--gpus=all"],
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    {
+      "source": "${localWorkspaceFolder}",
+      "target": "/workspace",
+      "type": "bind"
+    }
+  ],
+  "containerEnv": {
+    "LOGLEVEL": "INFO",
+    "MODEL_PATH": "/workspace/models"
+  }
+}
+
+
+// {
+//   "name": "mvit-fight-detection-savant",
+//   "image": "ghcr.io/insight-platform/savant-deepstream:latest",
+  
+//   // ===== GPU & RUNTIME =====
+//   "runArgs": [
+//     "--gpus=all",                    // ✅ Đã có
+//     "--runtime=nvidia",              // NVIDIA runtime
+//     "--ipc=host",                    // ⭐ Shared memory (QUAN TRỌNG cho multi-stream)
+//     "--network=host",                // Host network (cho RTSP)
+//     "--privileged",                  // Cần cho NVDEC access
+//     "--shm-size=8g",                 // Shared memory 8GB (cho 1000 cameras cần nhiều hơn)
+//     "--ulimit", "memlock=-1:-1",    // Unlimited memory lock
+//     "--ulimit", "stack=67108864"    // Stack size cho threads
+//   ],
+  
+//   "workspaceFolder": "/opt/savant",  // Standard Savant workspace
+  
+//   // ===== MOUNTS =====
+//   "mounts": [
+//     // Workspace mount
+//     {
+//       "source": "${localWorkspaceFolder}",
+//       "target": "/opt/savant",
+//       "type": "bind"
+//     },
+//     // Model cache (persistent)
+//     {
+//       "source": "${localWorkspaceFolder}/models",
+//       "target": "/models",
+//       "type": "bind"
+//     },
+//     // Video cache/output
+//     {
+//       "source": "${localWorkspaceFolder}/cache",
+//       "target": "/cache",
+//       "type": "bind"
+//     },
+//     // Logs
+//     {
+//       "source": "${localWorkspaceFolder}/logs",
+//       "target": "/logs",
+//       "type": "bind"
+//     }
+//   ],
+  
+//   // ===== ENVIRONMENT VARIABLES =====
+//   "containerEnv": {
+//     // Logging
+//     "LOGLEVEL": "INFO",
+//     "GST_DEBUG": "2",              // GStreamer debug level
+    
+//     // Savant specific
+//     "SAVANT_RS_LOG_LEVEL": "info",
+//     "ZMQ_SRC_ENDPOINT": "router+bind:ipc:///tmp/zmq-sockets/input-video.ipc",
+//     "ZMQ_SINK_ENDPOINT": "pub+bind:ipc:///tmp/zmq-sockets/output-meta.ipc",
+    
+//     // Model paths
+//     "MODEL_PATH": "/models",
+//     "DOWNLOAD_PATH": "/models/downloads",
+    
+//     // Performance
+//     "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+//     "CUDA_VISIBLE_DEVICES": "0",   // GPU ID (thay đổi nếu cần)
+    
+//     // TensorRT
+//     "TENSORRT_BUILDER_OPTIMIZATION_LEVEL": "5",
+//     "TENSORRT_CACHE_PATH": "/cache/tensorrt",
+    
+//     // MViT specific
+//     "MVIT_NUM_FRAMES": "16",
+//     "MVIT_STRIDE": "8",
+//     "CONFIDENCE_THRESHOLD": "0.5"
+//   },
+  
+//   // ===== FEATURES =====
+//   "features": {
+//     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+//   },
+  
+//   // ===== POST-CREATE COMMAND =====
+//   "postCreateCommand": "pip install -r requirements.txt",
+  
+//   // ===== CUSTOMIZE =====
+//   "customizations": {
+//     "vscode": {
+//       "extensions": [
+//         "ms-python.python",
+//         "ms-azuretools.vscode-docker",
+//         "redhat.vscode-yaml"
+//       ],
+//       "settings": {
+//         "python.defaultInterpreterPath": "/opt/savant/venv/bin/python",
+//         "python.linting.enabled": true,
+//         "python.linting.pylintEnabled": true
+//       }
+//     }
+//   },
+  
+//   // ===== PORTS =====
+//   "forwardPorts": [
+//     554,    // RTSP input
+//     8554,   // RTSP output
+//     9090,   // Prometheus metrics
+//     3000    // Grafana (nếu có)
+//   ],
+  
+//   // ===== USER MAPPING =====
+//   "remoteUser": "savant-user",
+//   "containerUser": "savant-user"
+// }

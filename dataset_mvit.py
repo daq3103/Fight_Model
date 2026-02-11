@@ -21,8 +21,8 @@ def load_video_frames(path, T):
         idxs = np.linspace(0, num_frames - 1, num=T, dtype=np.int64)
 
     batch = vr.get_batch(idxs).asnumpy()  # [T,H,W,3], uint8
-    import torch as _torch
-    video = _torch.from_numpy(batch).permute(3, 0, 1, 2).contiguous()  # [C,T,H,W]
+    
+    video = torch.from_numpy(batch).permute(3, 0, 1, 2).contiguous()  # [C,T,H,W]
     return video.float() / 255
 
 def to_float_tensor(label):
@@ -46,13 +46,8 @@ class VideoFolderDataset(Dataset):
         self.classes = classes
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
         
-        # Sửa mapping để FIGHT = 1, NOFIGHT = 0
-        if 'fight' in self.classes and 'nofight' in self.classes:
-             self.class_to_idx = {'nofight': 0, 'fight': 1}
-        elif 'FIGHT' in self.classes and 'NONFIGHT' in self.classes:
-             self.class_to_idx = {'NONFIGHT': 0, 'FIGHT': 1}
-        elif 'Fight' in self.classes and 'NonFight' in self.classes:
-             self.class_to_idx = {'NonFight': 0, 'Fight': 1}  # Fix cho Kaggle dataset
+        if 'Fight' in self.classes and 'NoFight' in self.classes:
+             self.class_to_idx = {'NoFight': 0, 'Fight': 1}
         # 2) Gom danh sách video + nhãn
         exts = VIDEO_EXTENSIONS
         samples = []
@@ -95,14 +90,12 @@ class VideoTransform:
         self.std = torch.tensor(STD).view(3, 1, 1, 1)
 
     def __call__(self, x):  
-        # x is [C, T, H, W]; resize spatial dims treating T as batch
         x = x.permute(1, 0, 2, 3).contiguous()  # [T, C, H, W]
         x = F.interpolate(
             x, size=(self.size, self.size), mode="bilinear", align_corners=False
         )
-        x = x.permute(1, 0, 2, 3).contiguous()  # back to [C, T, H, W]
+        x = x.permute(1, 0, 2, 3).contiguous()  
         if self.train and torch.rand(1) < 0.5:
             x = torch.flip(x, dims=[3])  
         x = (x - self.mean.to(x.device)) / self.std.to(x.device)
         return x
-    
